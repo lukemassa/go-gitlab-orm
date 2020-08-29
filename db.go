@@ -70,10 +70,7 @@ func Connect(gitlabRepoURL string, token string, config Config) (*DB, error) {
 //    db.client.Branches.ListBranches()
 //}
 
+// Ping test connection to the database
 func (db *DB) Ping() string {
-	commits, _, err := db.client.Commits.ListCommits(db.pid, &gitlab.ListCommitsOptions{})
-	if err != nil {
-		return fmt.Sprintf("Error: %v", err)
-	}
-	return commits[0].Message
+	return fmt.Sprintf("Hello %s", db.client.BaseURL().User.Username())
 }
