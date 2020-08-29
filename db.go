@@ -1,6 +1,10 @@
 package gitlaborm
 
-import "github.com/xanzy/go-gitlab"
+import (
+	"fmt"
+
+	"github.com/xanzy/go-gitlab"
+)
 
 // Config for the orm
 type Config struct {
@@ -11,15 +15,35 @@ type Config struct {
 type DB struct {
 	config Config
 	client *gitlab.Client
+	pid    int
 }
 
-// New DB
-func New(client *gitlab.Client, config Config) (*DB, error) {
+// Record a record in the database
+type Record interface {
+	ID() string
+}
+
+// Connect to DB
+func Connect(client *gitlab.Client, pid int, config Config) (*DB, error) {
 
 	ret := DB{
 		config: config,
 		client: client,
+		pid:    pid,
 	}
 
 	return &ret, nil
+}
+
+// List all records in the database
+//func (db *DB) List() []Record {
+//    db.client.Branches.ListBranches()
+//}
+
+func (db *DB) Ping() string {
+	commits, _, err := db.client.Commits.ListCommits(db.pid, &gitlab.ListCommitsOptions{})
+	if err != nil {
+		return fmt.Sprintf("Error: %v", err)
+	}
+	return commits[0].Message
 }
