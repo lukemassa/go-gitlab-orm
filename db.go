@@ -2,6 +2,9 @@ package gitlaborm
 
 import (
 	"fmt"
+	"strings"
+
+	"net/url"
 
 	"github.com/xanzy/go-gitlab"
 )
@@ -15,7 +18,7 @@ type Config struct {
 type DB struct {
 	config Config
 	client *gitlab.Client
-	pid    int
+	pid    string
 }
 
 // Record a record in the database
@@ -23,8 +26,35 @@ type Record interface {
 	ID() string
 }
 
+func parseGitlabRepoURL(gitlabRepoURL string) (string, string, error) {
+	parsedURL, err := url.Parse(gitlabRepoURL)
+	if err != nil {
+		return "", "", err
+	}
+	if parsedURL.Host == "" {
+		return "", "", fmt.Errorf("Invalid gitlab url does not contain host: %s", gitlabRepoURL)
+	}
+	// Trim leading slash
+	pid := strings.TrimLeft(parsedURL.Path, "/")
+	baseURL := url.URL{
+		Scheme: parsedURL.Scheme,
+		Host:   parsedURL.Host,
+		Path:   "/api/v4",
+	}
+	return pid, baseURL.String(), nil
+}
+
 // Connect to DB
-func Connect(client *gitlab.Client, pid int, config Config) (*DB, error) {
+func Connect(gitlabRepoURL string, token string, config Config) (*DB, error) {
+
+	pid, baseURL, err := parseGitlabRepoURL(gitlabRepoURL)
+	if err != nil {
+		return nil, err
+	}
+	client, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
+	if err != nil {
+		return nil, err
+	}
 
 	ret := DB{
 		config: config,
